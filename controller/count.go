@@ -10,6 +10,7 @@ import (
 	"github.com/datsukan/datsukan-blog-comment-count/response"
 )
 
+// Count は、コメント数を取得するControllerの処理。
 func Count(r events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	req := request.GetRequest(r.QueryStringParameters)
 	if err := req.Validate(); err != nil {
