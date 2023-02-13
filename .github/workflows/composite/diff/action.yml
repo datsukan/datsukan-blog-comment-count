@@ -1,0 +1,15 @@
+name: diff
+
+outputs:
+  diff-count:
+    value: ${{ steps.diff.outputs.diff-count }}
+
+runs:
+  using: composite
+  steps:
+    - id: diff
+      run: |
+        git fetch origin main
+        count=`git diff --name-only -- go.mod go.sum | wc -l`
+        echo "diff-count=$(echo $count)" >> $GITHUB_OUTPUT
+      shell: bash

@@ -1,0 +1,42 @@
+name: module-update
+
+on:
+  repository_dispatch:
+    types:
+      - module-update
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+
+      - name: Setup Go environment
+        uses: actions/setup-go@v3
+        with:
+          go-version: "1.19"
+
+      - name: git restore
+        run: |
+          git restore .
+
+      - name: go module update
+        run: |
+          GOPROXY=direct go get -u ./...
+
+      - name: diff
+        id: diff
+        uses: ./.github/workflows/composite/diff
+
+      - name: git setting & commit & push
+        if: steps.diff.outputs.diff-count > 0
+        run: |
+          git config --local user.email "s.datsukan@gmail.com"
+          git config --local user.name "datsukan"
+          git pull
+          git add -A
+          git commit -m "go module update"
+          git push origin main

@@ -1,0 +1,3 @@
+.env*
+dynamodb_data/
+datsukan-blog-comment-count

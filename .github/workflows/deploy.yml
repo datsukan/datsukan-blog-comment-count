@@ -1,0 +1,58 @@
+name: deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "README.md"
+      - ".github/**"
+
+jobs:
+  build:
+    if: ${{ github.event.workflow_run.conclusion == '' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Go environment
+        uses: actions/setup-go@v3
+        with:
+          go-version: "1.19"
+
+      - name: go get aws lambda library
+        run: go get github.com/aws/aws-lambda-go/lambda
+
+      - name: go build
+        run: GOOS=linux go build -o datsukan-blog-comment-count main.go
+
+      - name: create zip
+        run: zip datsukan-blog-comment-count.zip datsukan-blog-comment-count
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-1
+
+      - name: upload datsukan-blog-comment-count.zip to s3
+        run: aws s3 cp datsukan-blog-comment-count.zip s3://datsukan-blog-comment-lambda-deploy
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1-node16
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-1
+
+      - name: update Lambda function
+        run: |
+          aws lambda update-function-code --function-name datsukan-blog-comment-count --s3-bucket datsukan-blog-comment-lambda-deploy --s3-key datsukan-blog-comment-count.zip\
+          | jq '.FunctionName, .LastUpdateStatus'
